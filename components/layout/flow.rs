@@ -274,8 +274,10 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
     }
 
     fn transformed_overflow(&self, overflow: &Overflow) -> Option<Overflow> {
-        if !matches!(self.class(), FlowClass::Block | FlowClass::TableCaption | FlowClass::TableCell) ||
-            !self.as_block().fragment.establishes_stacking_context() ||
+        if !matches!(
+            self.class(),
+            FlowClass::Block | FlowClass::TableCaption | FlowClass::TableCell
+        ) || !self.as_block().fragment.establishes_stacking_context() ||
             self.as_block()
                 .fragment
                 .style
@@ -390,7 +392,10 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
             _ => {},
         }
 
-        if self.transformed_overflow(&overflow).map_or(false, |o| o.is_empty()) {
+        if self
+            .transformed_overflow(&overflow)
+            .map_or(false, |o| o.is_empty())
+        {
             self.mut_base().overflow = Overflow::new();
         } else {
             self.mut_base().overflow = overflow;

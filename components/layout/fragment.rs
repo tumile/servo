@@ -2735,11 +2735,15 @@ impl Fragment {
         // This uses some silly values for the rect to transform, because all we need
         // is a non-empty rect to start with to get a useful answer as to whether
         // the transformation makes it empty.
-        let transform = self.transform_matrix(&Rect::default())
+        let transform = self
+            .transform_matrix(&Rect::default())
             .unwrap_or(LayoutTransform::identity())
             .to_2d();
         let border_box_size = self.border_box.size.to_physical(self.style.writing_mode);
-        let border_box = self.border_box.to_physical(self.style.writing_mode, border_box_size).to_layout();
+        let border_box = self
+            .border_box
+            .to_physical(self.style.writing_mode, border_box_size)
+            .to_layout();
         transform.transform_rect(&border_box).is_empty()
     }
 

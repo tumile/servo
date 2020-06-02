@@ -205,6 +205,7 @@ impl Size {
     ToAnimatedValue,
     ToAnimatedZero,
     ToComputedValue,
+    ToPrimitive,
     ToResolvedValue,
     ToShmem,
 )]
