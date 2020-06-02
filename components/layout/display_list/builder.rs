@@ -2382,7 +2382,7 @@ impl BlockFlow {
         flags: StackingContextCollectionFlags,
     ) {
         // This block flow produces no stacking contexts if it takes up no space.
-        if !self.base().overflow.is_empty() {
+        if self.base().overflow.is_empty() {
             return;
         }
 
