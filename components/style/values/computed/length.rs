@@ -198,6 +198,7 @@ impl Size {
     Copy,
     Deserialize,
     MallocSizeOf,
+    NumCast,
     PartialEq,
     PartialOrd,
     Serialize,
