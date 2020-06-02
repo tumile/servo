@@ -448,6 +448,22 @@ impl Fragment {
                     return;
                 }
 
+                // If this fragment has a transform applied that makes it take up no spae
+                // then we don't need to create any stacking contexts for it.
+                let border_rect = fragment
+                    .border_rect()
+                    .to_physical(fragment.style.writing_mode, &containing_block_info.rect)
+                    .to_f32()
+                    .to_untyped();
+                let transformed_rect = BoxFragment::transformed_rect(
+                    &fragment.style,
+                    &containing_block_info.rect.to_untyped(),
+                    &border_rect,
+                );
+                if transformed_rect.map_or(true, |r| r.is_empty()) {
+                    return;
+                }
+
                 fragment.build_stacking_context_tree(
                     fragment_ref,
                     builder,
@@ -778,6 +794,18 @@ impl BoxFragment {
         })
     }
 
+    /// If there is a transform present in the provided style, returns the given rectangle transformed
+    /// by it. Otherwise, returns none.
+    pub(crate) fn transformed_rect(
+        style: &ComputedValues,
+        containing_block: &Rect<Length>,
+        rect: &Rect<f32>,
+    ) -> Option<Rect<f32>> {
+        let list = &style.get_box().transform;
+        let transform = list.to_transform_3d_matrix(Some(containing_block)).ok()?.0;
+        transform.transform_rect(rect).map(|r| r.to_untyped())
+    }
+
     /// Returns the 4D matrix representing this fragment's transform.
     pub fn calculate_transform_matrix(
         &self,
@@ -786,6 +814,10 @@ impl BoxFragment {
         let list = &self.style.get_box().transform;
         let transform =
             LayoutTransform::from_untyped(&list.to_transform_3d_matrix(Some(&border_rect)).ok()?.0);
+        // WebRender will end up dividing by the scale value of this transform, so we
+        // want to ensure we don't feed it a divisor of 0.
+        assert_ne!(transform.m11, 0.);
+        assert_ne!(transform.m22, 0.);
 
         let transform_origin = &self.style.get_box().transform_origin;
         let transform_origin_x = transform_origin

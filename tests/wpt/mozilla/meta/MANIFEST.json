@@ -6080,6 +6080,19 @@
       {}
      ]
     ],
+    "stacking-context-empty.html": [
+     "94b39e2db7ddc887ecad1d2e79c6c1a930ff122f",
+     [
+      null,
+      [
+       [
+        "/_mozilla/css/stacking-context-empty-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "stacking_context_overflow_a.html": [
      "dc379afb77977b0e99a0a8ce3321c9afff236a37",
      [
@@ -10309,6 +10322,10 @@
     ],
     "stacked_layers_ref.html": [
      "0525bab6b11800d29f90efc7efef0f43165fba01",
+     []
+    ],
+    "stacking-context-empty-ref.html": [
+     "c8ba6119d12c5b8a379e5161cc1db4945d2605c3",
      []
     ],
     "stacking_context_overflow_ref.html": [
