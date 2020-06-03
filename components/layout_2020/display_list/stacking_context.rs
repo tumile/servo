@@ -450,17 +450,11 @@ impl Fragment {
 
                 // If this fragment has a transform applied that makes it take up no spae
                 // then we don't need to create any stacking contexts for it.
-                let border_rect = fragment
-                    .border_rect()
-                    .to_physical(fragment.style.writing_mode, &containing_block_info.rect)
-                    .to_f32()
-                    .to_untyped();
-                let transformed_rect = BoxFragment::transformed_rect(
+                let has_non_invertible_transform = BoxFragment::has_non_invertible_transform(
                     &fragment.style,
                     &containing_block_info.rect.to_untyped(),
-                    &border_rect,
                 );
-                if transformed_rect.map_or(true, |r| r.is_empty()) {
+                if has_non_invertible_transform {
                     return;
                 }
 
@@ -796,14 +790,15 @@ impl BoxFragment {
 
     /// If there is a transform present in the provided style, returns the given rectangle transformed
     /// by it. Otherwise, returns none.
-    pub(crate) fn transformed_rect(
+    pub(crate) fn has_non_invertible_transform(
         style: &ComputedValues,
         containing_block: &Rect<Length>,
-        rect: &Rect<f32>,
-    ) -> Option<Rect<f32>> {
+    ) -> bool {
         let list = &style.get_box().transform;
-        let transform = list.to_transform_3d_matrix(Some(containing_block)).ok()?.0;
-        transform.transform_rect(rect).map(|r| r.to_untyped())
+        match list.to_transform_3d_matrix(Some(containing_block)) {
+            Ok(t) => !t.0.is_invertible(),
+            Err(_) => false,
+        }
     }
 
     /// Returns the 4D matrix representing this fragment's transform.

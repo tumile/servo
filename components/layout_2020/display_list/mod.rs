@@ -332,13 +332,11 @@ impl<'a> BuilderForBoxFragment<'a> {
     fn build(&mut self, builder: &mut DisplayListBuilder) {
         // If this box fragment has a transform applied that makes it take up no space,
         // we don't need to create any display items for it.
-        let content_rect = self.content_rect().to_f32().to_untyped();
-        let transformed_rect = BoxFragment::transformed_rect(
+        let has_non_invertible_transform = BoxFragment::has_non_invertible_transform(
             &self.fragment.style,
             &self.containing_block.to_untyped(),
-            &content_rect,
         );
-        if transformed_rect.map_or(true, |r| r.is_empty()) {
+        if has_non_invertible_transform {
             return;
         }
 
