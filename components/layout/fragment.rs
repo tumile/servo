@@ -2739,12 +2739,7 @@ impl Fragment {
             .transform_matrix(&Rect::default())
             .unwrap_or(LayoutTransform::identity())
             .to_2d();
-        let border_box_size = self.border_box.size.to_physical(self.style.writing_mode);
-        let border_box = self
-            .border_box
-            .to_physical(self.style.writing_mode, border_box_size)
-            .to_layout();
-        transform.transform_rect(&border_box).is_empty()
+        !transform.is_invertible()
     }
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
