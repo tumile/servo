@@ -49,6 +49,12 @@ impl GPUTextureView {
     }
 }
 
+impl GPUTextureView {
+    pub fn id(&self) -> WebGPUTextureView {
+        self.texture_view
+    }
+}
+
 impl GPUTextureViewMethods for GPUTextureView {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
     fn GetLabel(&self) -> Option<DOMString> {
