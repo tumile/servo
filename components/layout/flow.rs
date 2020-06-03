@@ -273,6 +273,49 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
         might_have_floats_in_or_out
     }
 
+    fn transformed_overflow(&self, overflow: &Overflow) -> Option<Overflow> {
+        if !matches!(
+            self.class(),
+            FlowClass::Block | FlowClass::TableCaption | FlowClass::TableCell
+        ) || !self.as_block().fragment.establishes_stacking_context() ||
+            self.as_block()
+                .fragment
+                .style
+                .get_box()
+                .transform
+                .0
+                .is_empty()
+        {
+            return None;
+        }
+
+        // FIXME(#2795): Get the real container size.
+        let container_size = Size2D::zero();
+        let position = self
+            .base()
+            .position
+            .to_physical(self.base().writing_mode, container_size);
+
+        // TODO: Take into account 3d transforms, even though it's a fairly
+        // uncommon case.
+        let transform_2d = self
+            .as_block()
+            .fragment
+            .transform_matrix(&position)
+            .unwrap_or(LayoutTransform::identity())
+            .to_2d()
+            .to_untyped();
+        let transformed_overflow = Overflow {
+            paint: f32_rect_to_au_rect(
+                transform_2d.transform_rect(&au_rect_to_f32_rect(overflow.paint)),
+            ),
+            scroll: f32_rect_to_au_rect(
+                transform_2d.transform_rect(&au_rect_to_f32_rect(overflow.scroll)),
+            ),
+        };
+        Some(transformed_overflow)
+    }
+
     fn get_overflow_in_parent_coordinates(&self) -> Overflow {
         // FIXME(#2795): Get the real container size.
         let container_size = Size2D::zero();
@@ -315,41 +358,12 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
             overflow.scroll.size.height = border_box.size.height;
         }
 
-        if !self.as_block().fragment.establishes_stacking_context() ||
-            self.as_block()
-                .fragment
-                .style
-                .get_box()
-                .transform
-                .0
-                .is_empty()
-        {
-            overflow.translate(&position.origin.to_vector());
-            return overflow;
-        }
-
-        // TODO: Take into account 3d transforms, even though it's a fairly
-        // uncommon case.
-        let transform_2d = self
-            .as_block()
-            .fragment
-            .transform_matrix(&position)
-            .unwrap_or(LayoutTransform::identity())
-            .to_2d()
-            .to_untyped();
-        let transformed_overflow = Overflow {
-            paint: f32_rect_to_au_rect(
-                transform_2d.transform_rect(&au_rect_to_f32_rect(overflow.paint)),
-            ),
-            scroll: f32_rect_to_au_rect(
-                transform_2d.transform_rect(&au_rect_to_f32_rect(overflow.scroll)),
-            ),
-        };
-
         // TODO: We are taking the union of the overflow and transformed overflow here, which
         // happened implicitly in the previous version of this code. This will probably be
         // unnecessary once we are taking into account 3D transformations above.
-        overflow.union(&transformed_overflow);
+        if let Some(transformed_overflow) = self.transformed_overflow(&overflow) {
+            overflow.union(&transformed_overflow);
+        }
 
         overflow.translate(&position.origin.to_vector());
         overflow
@@ -377,7 +391,15 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
             },
             _ => {},
         }
-        self.mut_base().overflow = overflow
+
+        if self
+            .transformed_overflow(&overflow)
+            .map_or(false, |o| o.is_empty())
+        {
+            self.mut_base().overflow = Overflow::new();
+        } else {
+            self.mut_base().overflow = overflow;
+        }
     }
 
     /// Phase 4 of reflow: Compute the stacking-relative position (origin of the content box,
@@ -1160,7 +1182,9 @@ impl BaseFlow {
         state: &mut StackingContextCollectionState,
     ) {
         for kid in self.children.iter_mut() {
-            kid.collect_stacking_contexts(state);
+            if !kid.base().overflow.is_empty() {
+                kid.collect_stacking_contexts(state);
+            }
         }
     }
 

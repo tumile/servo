@@ -24,7 +24,7 @@ use crate::display_list::items::{PopAllTextShadowsDisplayItem, PushTextShadowDis
 use crate::display_list::items::{StackingContext, StackingContextType, StickyFrameData};
 use crate::display_list::items::{TextOrientation, WebRenderImageInfo};
 use crate::display_list::ToLayout;
-use crate::flow::{BaseFlow, Flow, FlowFlags};
+use crate::flow::{BaseFlow, Flow, FlowFlags, GetBaseFlow};
 use crate::flow_ref::FlowRef;
 use crate::fragment::SpecificFragmentInfo;
 use crate::fragment::{CanvasFragmentSource, CoordinateSystem, Fragment, ScannedTextFragmentInfo};
@@ -1571,6 +1571,11 @@ impl Fragment {
             return;
         }
 
+        // If this fragment takes up no space, we don't need to build any display items for it.
+        if self.is_empty_with_transform() {
+            return;
+        }
+
         debug!(
             "Fragment::build_display_list at rel={:?}, abs={:?}: {:?}",
             self.border_box, stacking_relative_border_box, self
@@ -2376,6 +2381,11 @@ impl BlockFlow {
         state: &mut StackingContextCollectionState,
         flags: StackingContextCollectionFlags,
     ) {
+        // This block flow produces no stacking contexts if it takes up no space.
+        if self.base().overflow.is_empty() {
+            return;
+        }
+
         let mut preserved_state = SavedStackingContextCollectionState::new(state);
 
         let stacking_context_type = self.stacking_context_type(flags);

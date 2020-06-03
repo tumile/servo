@@ -2730,6 +2730,18 @@ impl Fragment {
             self.style().get_box().perspective != Perspective::None
     }
 
+    /// Returns true if this fragment has a transform applied that causes it to take up no space.
+    pub fn is_empty_with_transform(&self) -> bool {
+        // This uses some silly values for the rect to transform, because all we need
+        // is a non-empty rect to start with to get a useful answer as to whether
+        // the transformation makes it empty.
+        let transform = self
+            .transform_matrix(&Rect::default())
+            .unwrap_or(LayoutTransform::identity())
+            .to_2d();
+        !transform.is_invertible()
+    }
+
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
     pub fn establishes_stacking_context(&self) -> bool {
         // Text fragments shouldn't create stacking contexts.
@@ -3420,6 +3432,10 @@ impl Overflow {
     pub fn translate(&mut self, by: &Vector2D<Au>) {
         self.scroll = self.scroll.translate(*by);
         self.paint = self.paint.translate(*by);
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.scroll.is_empty() && self.paint.is_empty()
     }
 }
 

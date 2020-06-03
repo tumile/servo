@@ -346,6 +346,10 @@ pub struct BuildDisplayList<'a> {
 impl<'a> BuildDisplayList<'a> {
     #[inline]
     pub fn traverse(&mut self, flow: &mut dyn Flow) {
+        if flow.base().overflow.is_empty() {
+            return;
+        }
+
         let parent_stacking_context_id = self.state.current_stacking_context_id;
         self.state.current_stacking_context_id = flow.base().stacking_context_id;
 
